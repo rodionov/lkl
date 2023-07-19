@@ -414,6 +414,8 @@ static void ping_set_saddr(struct sock *sk, struct sockaddr *saddr)
 
 int ping_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 {
+// Temp workaround for missing memmove implementation when KASan is enabled.
+#ifndef CONFIG_LKL_FUZZING
 	struct inet_sock *isk = inet_sk(sk);
 	unsigned short snum;
 	int err;
@@ -466,6 +468,9 @@ out:
 	release_sock(sk);
 	pr_debug("ping_v4_bind -> %d\n", err);
 	return err;
+#else
+	return 0;
+#endif
 }
 EXPORT_SYMBOL_GPL(ping_bind);
 

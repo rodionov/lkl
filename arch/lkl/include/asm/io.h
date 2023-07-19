@@ -98,6 +98,13 @@ static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
 	return (void __iomem *)lkl_ops->ioremap(offset, size);
 }
 
+#ifdef CONFIG_MMU
+#define iounmap iounmap
+static inline void iounmap(void __iomem *addr)
+{
+}
+#endif
+
 #include <asm-generic/io.h>
 
 #endif /* _ASM_LKL_IO_H */
