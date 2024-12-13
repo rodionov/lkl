@@ -51,6 +51,11 @@ enum lkl_prot {
 	LKL_PROT_EXEC = 4,
 };
 
+struct lkl_random_sched_ops {
+	int (*do_yield)(void* task);
+	void *(*select_next_task)(void);
+};
+
 /**
  * lkl_host_operations - host operations used by the Linux kernel
  *
@@ -189,6 +194,7 @@ struct lkl_host_operations {
 	int (*munmap)(void *addr, unsigned long size);
 
 	struct lkl_dev_pci_ops *pci_ops;
+	struct lkl_random_sched_ops *random_sched_ops;
 };
 
 /**

@@ -490,6 +490,8 @@ static int lkl_munmap(void *addr, unsigned long size)
 extern struct lkl_dev_pci_ops vfio_pci_ops;
 #endif
 
+extern struct lkl_random_sched_ops lkl_random_sched;
+
 struct lkl_host_operations lkl_host_ops = {
 	.panic = panic,
 	.thread_create = thread_create,
@@ -533,6 +535,7 @@ struct lkl_host_operations lkl_host_ops = {
 #ifdef LKL_HOST_CONFIG_VFIO_PCI
 	.pci_ops = &vfio_pci_ops,
 #endif
+	.random_sched_ops = &lkl_random_sched,
 };
 
 void lkl_change_tls_mode(void)

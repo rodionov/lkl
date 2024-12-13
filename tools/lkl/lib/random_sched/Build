@@ -1,0 +1,2 @@
+liblkl-y += lkl_random_sched.o
+liblkl-y += scheduler.o

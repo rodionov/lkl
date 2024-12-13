@@ -88,11 +88,18 @@ static int new_host_task(struct task_struct **task)
 static void del_host_task(void *arg)
 {
 	struct task_struct *task = (struct task_struct *)arg;
+	struct task_struct *next;
 
 	if (lkl_cpu_get() < 0)
 		return;
 
 	switch_to_host_task(task);
+
+	next = lkl_ops->random_sched_ops->select_next_task();
+	if (next) {
+		wake_up_process(next);
+	}
+
 	host_task_id--;
 	thread_exit_jb();
 }
