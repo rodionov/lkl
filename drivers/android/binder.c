@@ -75,6 +75,12 @@
 #include "binder_internal.h"
 #include "binder_trace.h"
 
+#ifdef CONFIG_LKL_FUZZING
+#include <asm/random_sched.h>
+static void binder_deferred_flush(struct binder_proc *proc);
+static void binder_deferred_release(struct binder_proc *proc);
+#endif
+
 static HLIST_HEAD(binder_deferred_list);
 static DEFINE_MUTEX(binder_deferred_lock);
 
@@ -5707,7 +5713,12 @@ static int binder_flush(struct file *filp, fl_owner_t id)
 {
 	struct binder_proc *proc = filp->private_data;
 
+#ifdef CONFIG_LKL_FUZZING
+	// Execute flush immediately on host threads insted of kworker
+	binder_deferred_flush(proc);
+#else
 	binder_defer_work(proc, BINDER_DEFERRED_FLUSH);
+#endif
 
 	return 0;
 }
@@ -5745,8 +5756,12 @@ static int binder_release(struct inode *nodp, struct file *filp)
 		proc->binderfs_entry = NULL;
 	}
 
+#ifdef CONFIG_LKL_FUZZING
+	// Execute flush immediately on host threads insted of kworker
+	binder_deferred_release(proc);
+#else
 	binder_defer_work(proc, BINDER_DEFERRED_RELEASE);
-
+#endif
 	return 0;
 }
 

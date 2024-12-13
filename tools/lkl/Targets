@@ -37,4 +37,5 @@ endif
 
 # LKL fuzzers
 fuzzers-y += fuzzers/hid/hid-fuzzer
+fuzzers-y += fuzzers/binder/binder-fuzzer
 

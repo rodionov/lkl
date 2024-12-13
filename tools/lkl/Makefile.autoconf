@@ -169,6 +169,7 @@ define do_autoconf_llvm
   $(eval LLVM_SUFFIX := $(if $(filter -%,$(LLVM)),$(LLVM)))
   export CLANG_TARGET_FLAGS_lkl := $(CROSS_COMPILE)
   export CC := $(LLVM_PREFIX)clang$(LLVM_SUFFIX)
+  export CXX := $(LLVM_PREFIX)clang++$(LLVM_SUFFIX)
   export LD := $(LLVM_PREFIX)ld.lld$(LLVM_SUFFIX)
   export AR := $(LLVM_PREFIX)llvm-ar$(LLVM_SUFFIX)
   $(eval LD := $(LLVM_PREFIX)ld.lld$(LLVM_SUFFIX))

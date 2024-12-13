@@ -1,0 +1,5 @@
+
+CXXFLAGS_binder.pb.o += -DNDEBUGg
+CXXFLAGS_binder-fuzzer.o += -I/usr/local/include/libprotobuf-mutator
+
+binder-fuzzer-y += binder-fuzzer.o binder.o binder.pb.o

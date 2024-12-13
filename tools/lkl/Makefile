@@ -48,6 +48,10 @@ export CFLAGS += -I$(OUTPUT)/include -Iinclude -Wall -g -O2 -Wextra \
 	 -Wno-unused-parameter \
 	 -Wno-missing-field-initializers -fno-strict-aliasing
 
+export CXXFLAGS += -I$(OUTPUT)include -I$(srctree)/tools/lkl/include -Wall \
+	 -g -O2 -Wextra -Wno-unused-parameter -Wno-address-of-temporary \
+	 -Wno-missing-field-initializers -fno-strict-aliasing
+
 -include Targets
 
 TARGETS := $(progs-y:%=$(OUTPUT)%$(EXESUF))
@@ -99,6 +103,13 @@ $(OUTPUT)liblkl.a: $(OUTPUT)lib/liblkl-in.o $(OUTPUT)lib/lkl.o
 $(OUTPUT)%$(EXESUF): $(OUTPUT)%-in.o $(OUTPUT)liblkl.a
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(LDFLAGS_$*-y) -o $@ $^ $(LDLIBS) $(LDLIBS_$*-y)
 
+# Binder fuzzer is special: built with C++ toolchain and linked with libprotobuf-mutator
+$(OUTPUT)fuzzers/binder%$(EXESUF): LDLIBS += -lprotobuf-mutator-libfuzzer
+$(OUTPUT)fuzzers/binder%$(EXESUF): LDLIBS += -lprotobuf
+$(OUTPUT)fuzzers/binder%$(EXESUF): LDLIBS += -lprotobuf-mutator
+$(OUTPUT)fuzzers/binder%$(EXESUF): $(OUTPUT)fuzzers/binder%-in.o $(OUTPUT)liblkl.a
+	$(QUIET_LINK)$(CXX) $(LDFLAGS) $(LDFLAGS_$*-y) -o $@ $^ $(LDLIBS) $(LDLIBS_$*-y)
+
 # rule to build objects
 $(OUTPUT)%-in.o: $(OUTPUT)lib/lkl.o FORCE
 	$(Q)$(MAKE) -f $(srctree)/tools/build/Makefile.build dir=$(patsubst %/,%,$(dir $*)) obj=$(notdir $*)
@@ -148,6 +159,8 @@ $(OUTPUT)fuzzers/%$(EXESUF): LDFLAGS += -fsanitize=fuzzer --coverage
 
 FUZZ_TARGETS := $(fuzzers-y:%=$(OUTPUT)%$(EXESUF))
 fuzzers: $(FUZZ_TARGETS)
+
+binder_fuzzer: $(OUTPUT)fuzzers/binder/binder-fuzzer$(EXESUF)
 
 FORCE: ;
 .PHONY: all clean FORCE run-tests
