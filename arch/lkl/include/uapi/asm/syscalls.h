@@ -270,6 +270,12 @@ typedef __kernel_rwf_t		rwf_t;
 long lkl_syscall(long no, long *params);
 long lkl_sys_halt(void);
 
+#define LKL_TASK_NEW_TGID 0x01
+
+void *lkl_get_task(void);
+int lkl_set_task(void *task);
+int lkl_set_task_flag(unsigned long flag);
+
 #define __MAP0(m,...)
 #define __MAP1(m,t,a) m(t,a)
 #define __MAP2(m,t,a,...) m(t,a), __MAP1(m,__VA_ARGS__)

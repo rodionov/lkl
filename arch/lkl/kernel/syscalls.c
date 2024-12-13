@@ -55,13 +55,22 @@ static long run_syscall(long no, long *params)
 static int host_task_id;
 static struct task_struct *host0;
 
+static unsigned long get_task_flags(void *task)
+{
+	return (unsigned long)task & LKL_TASK_FLAG_MASK;
+}
+
 static int new_host_task(struct task_struct **task)
 {
 	pid_t pid;
+	unsigned long flags = CLONE_FLAGS;
 
 	switch_to_host_task(host0);
 
-	pid = kernel_thread(host_task_stub, NULL, NULL, CLONE_FLAGS);
+	if (get_task_flags(*task) & LKL_TASK_NEW_TGID)
+		flags &= ~CLONE_THREAD;
+
+	pid = kernel_thread(host_task_stub, NULL, NULL, flags);
 	if (pid < 0)
 		return pid;
 
@@ -75,26 +84,25 @@ static int new_host_task(struct task_struct **task)
 
 	return 0;
 }
-static void exit_task(void)
-{
-	do_exit(0);
-}
 
 static void del_host_task(void *arg)
 {
 	struct task_struct *task = (struct task_struct *)arg;
-	struct thread_info *ti = task_thread_info(task);
 
 	if (lkl_cpu_get() < 0)
 		return;
 
 	switch_to_host_task(task);
 	host_task_id--;
-	set_ti_thread_flag(ti, TIF_SCHED_JB);
-	lkl_ops->jmp_buf_set(&ti->sched_jb, exit_task);
+	thread_exit_jb();
 }
 
 static struct lkl_tls_key *task_key;
+
+bool is_task_set(void *task)
+{
+	return (unsigned long)task & ~LKL_TASK_FLAG_MASK;
+}
 
 long lkl_syscall(long no, long *params)
 {
@@ -107,7 +115,7 @@ long lkl_syscall(long no, long *params)
 
 	if (lkl_ops->tls_get) {
 		task = lkl_ops->tls_get(task_key);
-		if (!task) {
+		if (!is_task_set(task)) {
 			ret = new_host_task(&task);
 			if (ret)
 				goto out;
@@ -128,6 +136,31 @@ out:
 	lkl_cpu_put();
 
 	return ret;
+}
+
+void *lkl_get_task(void)
+{
+	if (lkl_ops->tls_get) {
+		return lkl_ops->tls_get(task_key);
+	}
+	return NULL;
+}
+
+int lkl_set_task(void *task)
+{
+	if (lkl_ops->tls_set) {
+		return lkl_ops->tls_set(task_key, task);
+	}
+	return -1;
+}
+
+int lkl_set_task_flag(unsigned long flag)
+{
+	if (lkl_ops->tls_set) {
+		flag &= LKL_TASK_FLAG_MASK;
+		return lkl_ops->tls_set(task_key, (void *)flag);
+	}
+	return -1;
 }
 
 static struct task_struct *idle_host_task;
@@ -163,6 +196,9 @@ int syscalls_init(void)
 	snprintf(current->comm, sizeof(current->comm), "host0");
 	set_thread_flag(TIF_HOST_THREAD);
 	host0 = current;
+
+	// Reap zombie host tasks spawned with LKL_TASK_NEW_TGID
+	kernel_sigaction(SIGCHLD, SIG_IGN);
 
 	if (lkl_ops->tls_alloc) {
 		task_key = lkl_ops->tls_alloc(del_host_task);
