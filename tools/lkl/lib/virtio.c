@@ -276,6 +276,9 @@ static int virtio_process_one(struct virtio_dev *dev, int qidx)
 	if (desc && le16toh(desc->flags) & LKL_VRING_DESC_F_NEXT)
 		virtio_panic("too many chained bufs");
 
+	for (int i = 0; i < req->buf_count; i++)
+		req->buf[i].iov_base = lkl_dma_addr_to_va(req->buf[i].iov_base);
+
 	return dev->ops->enqueue(dev, qidx, req);
 }
 
@@ -403,16 +406,20 @@ static int virtio_read(void *data, int offset, void *res, int size)
 static inline void set_ptr_low(void **ptr, uint32_t val)
 {
 	uint64_t tmp = (uintptr_t)*ptr;
+	uint64_t val_64 = val;
 
-	tmp = (tmp & 0xFFFFFFFF00000000) | val;
+	val_64 = (uint64_t)lkl_dma_addr_to_va((void *)val_64);
+	tmp = (tmp & 0xFFFFFFFF00000000) | (val_64 & 0x00000000FFFFFFFF);
 	*ptr = (void *)(long)tmp;
 }
 
 static inline void set_ptr_high(void **ptr, uint32_t val)
 {
 	uint64_t tmp = (uintptr_t)*ptr;
+	uint64_t val_64 = val;
 
-	tmp = (tmp & 0x00000000FFFFFFFF) | ((uint64_t)val << 32);
+	val_64 = (uint64_t)(lkl_dma_addr_to_va((void *)(val_64 << 32)));
+	tmp = (tmp & 0x00000000FFFFFFFF) | (val_64 & 0xFFFFFFFF00000000);
 	*ptr = (void *)(long)tmp;
 }
 

@@ -968,6 +968,30 @@ int lkl_sysctl(const char *path, const char *value);
  */
 void lkl_sysctl_parse_write(const char *sysctls);
 
+/**
+ * lkl_dma_addr_to_va - translate kernel DMA address to virtual address
+ *
+ * @dma_addr - physical address to be translated to virtual
+ *
+ * Kernel-side virtio drivers return DMA addresses of shared memory regions to
+ * be used by LKL-lib-side virtio implementation (such as used, desc, avail
+ * and etc.). When LKL is built without MMU support DMA addresses (which are
+ * physical addresses) are the same as virtual addresses and can be directly
+ * used in LKL virtio lib.
+ *
+ * However, when MMU configuration is enabled DMA addressess are not equal to
+ * their corresponding virtual address. This routine translates the LKL
+ * physical memory addresses to virtual addresses usable in LKL lib.
+ */
+static inline void *lkl_dma_addr_to_va(void *dma_addr)
+{
+#ifdef LKL_HOST_CONFIG_MMU
+	return (void *)(LKL_HOST_CONFIG_LKL_MEMORY_START + (char *)dma_addr);
+#else
+	return dma_addr;
+#endif // LKL_HOST_CONFIG_MMU
+}
+
 #ifdef __cplusplus
 }
 #endif
